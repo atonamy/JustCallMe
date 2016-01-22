@@ -1,0 +1,105 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0099cc"
+    tools:context="com.atonamy.justcallme.VideoCallActivity"
+    android:id="@+id/fullscreen_content">
+
+    <!-- The primary full-screen view. This can be replaced with whatever view
+         is needed to present your content, e.g. VideoView, SurfaceView,
+         TextureView, etc. -->
+    <com.atonamy.justcallme.PercentFrameLayout
+        android:id="@+id/remote_video_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <org.webrtc.SurfaceViewRenderer
+            android:id="@+id/remote_video_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </com.atonamy.justcallme.PercentFrameLayout>
+
+    <com.atonamy.justcallme.PercentFrameLayout
+        android:id="@+id/local_video_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <org.webrtc.SurfaceViewRenderer
+            android:id="@+id/local_video_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </com.atonamy.justcallme.PercentFrameLayout>
+
+    <!-- This FrameLayout insets its children based on system windows using
+         android:fitsSystemWindows. -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fitsSystemWindows="true">
+
+        <LinearLayout
+            android:id="@+id/fullscreen_content_controls"
+            style="?metaButtonBarStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:background="@color/black_overlay"
+            android:orientation="horizontal"
+            android:padding="5sp"
+            tools:ignore="UselessParent">
+
+            <Button
+                android:id="@+id/switch_camera_button"
+                style="?metaButtonBarButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.5"
+                android:padding="10sp"
+                android:layout_margin="2dp"
+                android:background="@color/black_overlay"
+                android:text="@string/switch_camera" />
+
+
+
+            <Button
+                android:id="@+id/end_call_button"
+                style="?metaButtonBarButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.5"
+                android:padding="10sp"
+                android:layout_margin="2dp"
+                android:background="@color/black_overlay"
+                android:text="@string/end_call" />
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center_horizontal|top"
+        android:background="#000000"
+        android:id="@+id/backgroundShading"
+        android:alpha="0.5">
+
+    </FrameLayout>
+
+    <ProgressBar
+        style="?android:attr/progressBarStyleLarge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/progressBarWait"
+        android:layout_gravity="center" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="@string/waiting_call"
+        android:id="@+id/textViewWait"
+        android:layout_gravity="center_horizontal|top"
+        android:layout_marginTop="20dp"
+        android:textColor="#fffdfd" />
+
+</FrameLayout>

@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Just Call Me</string>
+
+    <string name="title_activity_video_call">VideoCallActivity</string>
+    <string name="end_call">End Call</string>
+    <string name="switch_camera">Switch Camera</string>
+    <string name="waiting_call">Waiting for interlocutor...</string>
+    <string name="call">The interlocutor found</string>
+    <string name="wait">Connecting... Please wait</string>
+</resources>
