@@ -57,6 +57,8 @@ public class SignalingHandler  {
     private int candidatePriority;
     private boolean descriptionSent;
     private int nextCandidatePriority;
+    private boolean error;
+    private Handler checker;
 
 
     private static final int DEFAULT_PARAMS = 3;
@@ -122,38 +124,34 @@ public class SignalingHandler  {
         candidatePriority = 0;
         nextCandidatePriority = 0;
         descriptionSent = false;
+        error = false;
+        checker = null;
     }
 
 
     public void connect() {
         disconnect();
         initDefaults();
-        boolean fail = false;
-        if (!connectionStatus) {
-            try {
-                wsConnection.connect(new URI(wsServer), wsObserver);
-            } catch (WebSocketException e) {
-                e.printStackTrace();
-                fail = true;
-            } catch (URISyntaxException e) {
-                e.printStackTrace();
-                fail = true;
-            }
-        }
+        (new Thread(connect)).start();
 
-        if(iEvents != null && fail)
-            (new Handler()).post(new Runnable() {
+        if(iEvents != null) {
+            checker = new Handler();
+            checker.postDelayed(new Runnable() {
                 @Override
                 public void run() {
                     //need to replace on proper error code and message
-                    iEvents.onError(null, null);
+                    if (checker != null && (!connectionStatus || error))
+                        iEvents.onError(null, null);
                 }
-            });
+            }, 7000);
+        }
     }
 
     public void disconnect() {
+        checker = null;
         if(connectionStatus)
             wsConnection.disconnect();
+
     }
 
     public boolean getConnectionStatus() {
@@ -553,6 +551,25 @@ public class SignalingHandler  {
 
         return message.toString();
     }
+
+    private Runnable connect = new Runnable() {
+
+        @Override
+        public void run() {
+            error = false;
+            if (!connectionStatus) {
+                try {
+                    wsConnection.connect(new URI(wsServer), wsObserver);
+                } catch (WebSocketException e) {
+                    e.printStackTrace();
+                    error = true;
+                } catch (URISyntaxException e) {
+                    e.printStackTrace();
+                    error = true;
+                }
+            }
+        }
+    };
 
     private WebSocket.WebSocketConnectionObserver wsObserver = new WebSocket.WebSocketConnectionObserver() {
 
