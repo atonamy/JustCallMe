@@ -3,12 +3,15 @@ package com.atonamy.justcallme;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
+import android.view.Display;
 import android.view.MotionEvent;
+import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ProgressBar;
@@ -70,6 +73,7 @@ public class VideoCallActivity extends AppCompatActivity implements PeerConnecti
     private View mBackgroundView;
     private ProgressBar mProgressBar;
     private TextView mTextWait;
+    private int remoteScreenOrientation;
 
 
     /**
@@ -156,6 +160,7 @@ public class VideoCallActivity extends AppCompatActivity implements PeerConnecti
 
         hideActionBar();
         keepScreenOn();
+
     }
 
     protected void initUI() {
@@ -183,6 +188,7 @@ public class VideoCallActivity extends AppCompatActivity implements PeerConnecti
         peerFound = false;
         sessionDescription = null;
         iceCandidates = new LinkedList<IceCandidate>();
+        remoteScreenOrientation = Configuration.ORIENTATION_UNDEFINED;
     }
 
     protected void initListeners() {
@@ -219,6 +225,7 @@ public class VideoCallActivity extends AppCompatActivity implements PeerConnecti
         remoteRender.init(rootEglBase.getEglBaseContext(), null);
         localRender.setZOrderMediaOverlay(true);
         updateVideoView();
+
     }
 
     protected PeerConnectionClient.PeerConnectionParameters getPeerConnectionParameters() {
@@ -268,11 +275,39 @@ public class VideoCallActivity extends AppCompatActivity implements PeerConnecti
     }
 
     @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        int orientation = getScreenOrientation();
+        if(iceConnected) {
+            signalingHandler.sendScreenOrientation(orientation);
+            adjustScreenOrientation();
+        }
+    }
+
+    @Override
     protected void onDestroy() {
 
         releaseAll();
         super.onDestroy();
     }
+
+    public int getScreenOrientation() {
+        Display getOrient = getWindowManager().getDefaultDisplay();
+        int rotation = getOrient.getRotation();
+        switch (rotation) {
+            case Surface.ROTATION_0:
+                return Configuration.ORIENTATION_PORTRAIT;
+            case Surface.ROTATION_90:
+                return Configuration.ORIENTATION_LANDSCAPE;
+            case Surface.ROTATION_180:
+                return Configuration.ORIENTATION_PORTRAIT;
+            case Surface.ROTATION_270:
+                return Configuration.ORIENTATION_LANDSCAPE;
+            default:
+                return Configuration.ORIENTATION_UNDEFINED;
+        }
+    }
+
 
     private void releaseAll() {
 
@@ -377,6 +412,14 @@ public class VideoCallActivity extends AppCompatActivity implements PeerConnecti
         localRender.setMirror(false);
 
         localRender.requestLayout();
+        remoteRender.requestLayout();
+    }
+
+    private void adjustScreenOrientation() {
+        if(remoteScreenOrientation == getScreenOrientation())
+            remoteRender.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FILL);
+        else
+            remoteRender.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT);
         remoteRender.requestLayout();
     }
 
@@ -521,6 +564,20 @@ public class VideoCallActivity extends AppCompatActivity implements PeerConnecti
     }
 
     @Override
+    public void onRemoteScreenOrientation(final int orientation) {
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                remoteScreenOrientation = orientation;
+                if(iceConnected)
+                    adjustScreenOrientation();
+            }
+        });
+
+    }
+
+    @Override
     public void onLocalDescription(final SessionDescription description) {
         runOnUiThread(new Runnable() {
             @Override
@@ -558,6 +615,7 @@ public class VideoCallActivity extends AppCompatActivity implements PeerConnecti
                 Toast.makeText(getApplicationContext(), "Ready to talk!",
                         Toast.LENGTH_SHORT).show();
                 updateVideoView();
+                signalingHandler.sendScreenOrientation(getScreenOrientation());
             }
         });
     }

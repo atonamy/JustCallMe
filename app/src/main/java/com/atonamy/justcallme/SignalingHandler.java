@@ -38,6 +38,7 @@ public class SignalingHandler  {
         public void onRemoteDescription(final SessionDescription description, final List<PeerConnection.IceServer> iceServers);
         public void onRemoteCandidate(final IceCandidate candidate);
         public void onError(final Integer code, final String message);
+        public void onRemoteScreenOrientation(final int orientation);
     }
 
     private String wsServer;
@@ -167,6 +168,11 @@ public class SignalingHandler  {
     public void sendLocalCandidate(IceCandidate candidate) {
 
         sendMessage(getCandidateMessage(candidate));
+    }
+
+    public void sendScreenOrientation(int orientation) {
+
+        sendMessage(getOrientationMessage(orientation));
     }
 
     public void descriptionSent() {
@@ -311,6 +317,9 @@ public class SignalingHandler  {
                                 while (i_candidates.hasNext())
                                     iceCandidates.add(priority, candidate);
                             }
+                        else if(messageType.contentEquals("orientation")) {
+                            iEvents.onRemoteScreenOrientation(message.getInt("value"));
+                        }
 
                     } catch (JSONException e) {
                         e.printStackTrace();
@@ -465,7 +474,6 @@ public class SignalingHandler  {
 
     protected void sendMessage(String message) {
 
-
         if(message != null && connectionStatus && interlocutorId != null) {
 
             HashMap<String, String> params = new HashMap<String, String>();
@@ -496,8 +504,8 @@ public class SignalingHandler  {
                 }
             });
 
-
     }
+
     protected String getDescriptionMessage(String description) {
         JSONObject message = new JSONObject();
 
@@ -524,6 +532,20 @@ public class SignalingHandler  {
             message.put("id", candidate.sdpMid);
             message.put("candidate", candidate.sdp);
             message.put("priority", candidatePriority++);
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return null;
+        }
+
+        return message.toString();
+    }
+
+    protected String getOrientationMessage(int orientation) {
+        JSONObject message = new JSONObject();
+
+        try {
+            message.put("type", "orientation");
+            message.put("value", orientation);
         } catch (JSONException e) {
             e.printStackTrace();
             return null;

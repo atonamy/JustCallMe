@@ -29,7 +29,6 @@ public class StartActivity extends AppCompatActivity {
         setupUI();
     }
 
-
     protected void startCall(int delay, final boolean unock) {
 
         (new Handler()).postDelayed(new Runnable(){
