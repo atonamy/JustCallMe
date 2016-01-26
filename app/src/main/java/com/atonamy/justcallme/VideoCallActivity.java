@@ -37,6 +37,8 @@ import java.util.List;
 public class VideoCallActivity extends AppCompatActivity implements PeerConnectionClient.PeerConnectionEvents, SignalingHandler.Events {
 
     private static String WS_SERVER = "ws://104.199.139.87:8005";
+    private final static int DEFAULT_DELAY = 3000;
+    private final static int DELAY_DISCONNECT = 2000;
 
     private static final int REMOTE_X = 0;
     private static final int REMOTE_Y = 0;
@@ -425,27 +427,17 @@ public class VideoCallActivity extends AppCompatActivity implements PeerConnecti
 
     @Override
     public void onInitiator(final List<PeerConnection.IceServer> iceServers) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                isInitiator = true;
-                peerConnectionClient.createPeerConnection(localRender, remoteRender, iceServers);
-                peerConnectionClient.createOffer();
-                Toast.makeText(getApplicationContext(), "Waiting for call...",
-                        Toast.LENGTH_SHORT).show();
-            }
-        });
+        isInitiator = true;
+        peerConnectionClient.createPeerConnection(localRender, remoteRender, iceServers);
+        peerConnectionClient.createOffer();
+        Toast.makeText(getApplicationContext(), "Waiting for call...",
+                Toast.LENGTH_SHORT).show();
     }
 
     @Override
     public void onServerConnected(final String connectionId) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(getApplicationContext(), "Connected",
-                        Toast.LENGTH_SHORT).show();
-            }
-        });
+        Toast.makeText(getApplicationContext(), "Connected",
+                Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -453,128 +445,88 @@ public class VideoCallActivity extends AppCompatActivity implements PeerConnecti
         (new Handler()).postDelayed(new Runnable() {
             @Override
             public void run() {
-                runOnUiThread(new Runnable() {
-                                  @Override
-                                  public void run () {
-                                      Toast.makeText(getApplicationContext(), "Disconnected",
-                                              Toast.LENGTH_LONG).show();
-                                      finish();
-                                  }
-                              }
-                );
+                Toast.makeText(getApplicationContext(), "Disconnected",
+                        Toast.LENGTH_LONG).show();
+                finish();
             }
 
-        }, 2000);
+        }, DELAY_DISCONNECT);
     }
 
     @Override
     public void onInterlocutorFound(final String peerId) {
-        runOnUiThread(new Runnable() {
+        peerFound = true;
+        if(sessionDescription != null)
+            signalingHandler.sendLocalDescription(isInitiator, sessionDescription);
+        if(iceCandidates.size() > 0)
+        {
+            Iterator<IceCandidate> i_candidate = iceCandidates.iterator();
+            while(i_candidate.hasNext())
+                signalingHandler.sendLocalCandidate(i_candidate.next());
+            iceCandidates.clear();
+
+        }
+        mTextWait.setText(getResources().getString(R.string.call));
+        Toast.makeText(getApplicationContext(), "Someone just joined",
+                Toast.LENGTH_SHORT).show();
+
+        (new Handler()).postDelayed(new Runnable() {
             @Override
-            public void run() {
-                peerFound = true;
-                if(sessionDescription != null)
-                    signalingHandler.sendLocalDescription(isInitiator, sessionDescription);
-                if(iceCandidates.size() > 0)
-                {
-                    Iterator<IceCandidate> i_candidate = iceCandidates.iterator();
-                    while(i_candidate.hasNext())
-                        signalingHandler.sendLocalCandidate(i_candidate.next());
-                    iceCandidates.clear();
-
+                public void run() {
+                    mTextWait.setText(getResources().getString(R.string.wait));
                 }
-                mTextWait.setText(getResources().getString(R.string.call));
-                Toast.makeText(getApplicationContext(), "Someone just joined",
-                        Toast.LENGTH_SHORT).show();
 
-                (new Handler()).postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        runOnUiThread(new Runnable() {
-                                          @Override
-                                          public void run () {
-                                              mTextWait.setText(getResources().getString(R.string.wait));
-                                          }
-                                      }
-                        );
-                    }
+        }, DEFAULT_DELAY);
 
-                }, 3000);
-            }
-        });
     }
 
     @Override
     public void onRemoteDescription(final SessionDescription description, final List<PeerConnection.IceServer> iceServers) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if(!isInitiator)
-                    peerConnectionClient.createPeerConnection(localRender, remoteRender, iceServers);
+        if(!isInitiator)
+            peerConnectionClient.createPeerConnection(localRender, remoteRender, iceServers);
 
 
-                peerConnectionClient.setRemoteDescription(description);
+        peerConnectionClient.setRemoteDescription(description);
 
-                if(!isInitiator) {
-                    Toast.makeText(getApplicationContext(), "Replying on call",
-                            Toast.LENGTH_SHORT).show();
-                    peerConnectionClient.createAnswer();
-                    isAnswered = true;
-                }
+        if(!isInitiator) {
+            Toast.makeText(getApplicationContext(), "Replying on call",
+                    Toast.LENGTH_SHORT).show();
+            peerConnectionClient.createAnswer();
+            isAnswered = true;
+        }
 
-                mProgressBar.getIndeterminateDrawable().setColorFilter(Color.RED,
-                        android.graphics.PorterDuff.Mode.MULTIPLY);
+        mProgressBar.getIndeterminateDrawable().setColorFilter(Color.RED,
+                android.graphics.PorterDuff.Mode.MULTIPLY);
 
-                signalingHandler.descriptionSent();
-            }
-        });
+        signalingHandler.descriptionSent();
     }
 
     @Override
     public void onRemoteCandidate(final IceCandidate candidate) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if(!isAnswered && !isInitiator) {
-                    Toast.makeText(getApplicationContext(), "No answer created :(",
-                            Toast.LENGTH_LONG).show();
-                    finish();
-                }
-                else {
-                    peerConnectionClient.addRemoteIceCandidate(candidate);
+        if (!isAnswered && !isInitiator) {
+            Toast.makeText(getApplicationContext(), "No answer created :(",
+                    Toast.LENGTH_LONG).show();
+            finish();
+        } else {
+            peerConnectionClient.addRemoteIceCandidate(candidate);
 
-                    mProgressBar.getIndeterminateDrawable().setColorFilter(Color.GREEN,
-                            android.graphics.PorterDuff.Mode.MULTIPLY);
-                }
-
-            }
-        });
+            mProgressBar.getIndeterminateDrawable().setColorFilter(Color.GREEN,
+                    android.graphics.PorterDuff.Mode.MULTIPLY);
+        }
     }
 
     @Override
     public void onError(final Integer code, final String message) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(getApplicationContext(), ((message == null) ? "Something went wrong :(":message),
-                        Toast.LENGTH_LONG).show();
-                finish();
-            }
-        });
+        Toast.makeText(getApplicationContext(), ((message == null) ? "Something went wrong :(" : message),
+                Toast.LENGTH_LONG).show();
+        finish();
     }
 
     @Override
     public void onRemoteScreenOrientation(final int orientation) {
-
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                remoteScreenOrientation = orientation;
-                if(iceConnected)
-                    adjustScreenOrientation();
-            }
-        });
-
+        remoteScreenOrientation = orientation;
+        if (iceConnected)
+            adjustScreenOrientation();
     }
 
     @Override

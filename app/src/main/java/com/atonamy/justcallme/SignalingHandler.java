@@ -30,6 +30,8 @@ import de.tavendo.autobahn.WebSocketException;
 public class SignalingHandler  {
 
 
+    private final static int CHECKER_DELAY = 7000;
+
     public interface Events {
         public void onInitiator(final List<PeerConnection.IceServer> iceServers);
         public void onServerConnected(final String connectionId);
@@ -143,7 +145,7 @@ public class SignalingHandler  {
                     if (checker != null && (!connectionStatus || error))
                         iEvents.onError(null, null);
                 }
-            }, 7000);
+            }, CHECKER_DELAY);
         }
     }
 
@@ -281,51 +283,64 @@ public class SignalingHandler  {
         final String messageType = message.getString("type");
 
         if(iEvents != null)
-            (new Handler()).post(new Runnable() {
-                @Override
-                public void run() {
-
                     try {
                         if(messageType.contentEquals("offer") || messageType.contentEquals("answer")) {
-
                             final SessionDescription sessionDescription = new SessionDescription(
                                     SessionDescription.Type.fromCanonicalForm(messageType),
                                     message.getString("sdp"));
-                            iEvents.onRemoteDescription(sessionDescription, iceServers);
-                            if (iceCandidates.size() > 0) {
-                                Iterator<IceCandidate> i_candidates = iceCandidates.iterator();
-                                while (i_candidates.hasNext())
-                                    iEvents.onRemoteCandidate(i_candidates.next());
-                                iceCandidates.clear();
-                            }
+
+                            (new Handler()).post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    iEvents.onRemoteDescription(sessionDescription, iceServers);
+                                    if (iceCandidates.size() > 0) {
+                                        final Iterator<IceCandidate> i_candidates = iceCandidates.iterator();
+                                        while (i_candidates.hasNext())
+                                            iEvents.onRemoteCandidate(i_candidates.next());
+                                        iceCandidates.clear();
+                                    }
+                                }
+                            });
                         }
                         else if(messageType.contentEquals("candidate")) {
-                            IceCandidate candidate = new IceCandidate(
+                            final IceCandidate candidate = new IceCandidate(
                                     message.getString("id"),
                                     message.getInt("label"),
                                     message.getString("candidate"));
-                            Integer priority = message.getInt("priority");
-                            List<IceCandidate> candidates = getCandidatesToSend(priority, candidate);
-                            Iterator<IceCandidate> i_candidates = candidates.iterator();
-
-                            if (descriptionSent)
-                                while (i_candidates.hasNext())
-                                    iEvents.onRemoteCandidate(i_candidates.next());
-                            else
-                                while (i_candidates.hasNext())
-                                    iceCandidates.add(priority, candidate);
-                            }
-                        else if(messageType.contentEquals("orientation")) {
-                            iEvents.onRemoteScreenOrientation(message.getInt("value"));
+                            final Integer priority = message.getInt("priority");
+                            (new Handler()).post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        List<IceCandidate> candidates = getCandidatesToSend(priority, candidate);
+                                        Iterator<IceCandidate> i_candidates = candidates.iterator();
+                                        if (descriptionSent)
+                                            while (i_candidates.hasNext())
+                                                iEvents.onRemoteCandidate(i_candidates.next());
+                                        else
+                                            while (i_candidates.hasNext())
+                                                iceCandidates.add(priority, candidate);
+                                    }
+                            });
+                        } else if(messageType.contentEquals("orientation")) {
+                            final int orientation = message.getInt("value");
+                            (new Handler()).post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    iEvents.onRemoteScreenOrientation(orientation);
+                                }
+                            });
                         }
 
                     } catch (JSONException e) {
                         e.printStackTrace();
-                        //need to replace on proper error code and message
-                        iEvents.onError(null, null);
+                        (new Handler()).post(new Runnable() {
+                            @Override
+                            public void run() {
+                                //need to replace on proper error code and message
+                                iEvents.onError(null,null);
+                            }
+                        });
                     }
-                }
-            });
 
         return true;
     }
