@@ -308,6 +308,7 @@ public class SignalingHandler  {
                                     message.getInt("label"),
                                     message.getString("candidate"));
                             final Integer priority = message.getInt("priority");
+
                             (new Handler()).post(new Runnable() {
                                     @Override
                                     public void run() {
@@ -323,6 +324,7 @@ public class SignalingHandler  {
                             });
                         } else if(messageType.contentEquals("orientation")) {
                             final int orientation = message.getInt("value");
+
                             (new Handler()).post(new Runnable() {
                                 @Override
                                 public void run() {
