@@ -38,7 +38,6 @@ public class VideoCallActivity extends AppCompatActivity implements PeerConnecti
 
     private static String WS_SERVER = "ws://104.199.139.87:8005";
     private final static int DEFAULT_DELAY = 3000;
-    private final static int DELAY_DISCONNECT = 2000;
 
     private static final int REMOTE_X = 0;
     private static final int REMOTE_Y = 0;
@@ -70,12 +69,13 @@ public class VideoCallActivity extends AppCompatActivity implements PeerConnecti
     List<IceCandidate> iceCandidates;
     private EglBase rootEglBase;
     private WebRTCAudioManager audioManager;
-    private boolean isAnswered = false;
+    private boolean isAnswered;
 
     private View mBackgroundView;
     private ProgressBar mProgressBar;
     private TextView mTextWait;
     private int remoteScreenOrientation;
+    private boolean tryReconnect;
 
 
     /**
@@ -191,6 +191,8 @@ public class VideoCallActivity extends AppCompatActivity implements PeerConnecti
         sessionDescription = null;
         iceCandidates = new LinkedList<IceCandidate>();
         remoteScreenOrientation = Configuration.ORIENTATION_UNDEFINED;
+        tryReconnect = false;
+        isAnswered = false;
     }
 
     protected void initListeners() {
@@ -380,7 +382,7 @@ public class VideoCallActivity extends AppCompatActivity implements PeerConnecti
         signalingHandler.connect();
         // Create and audio manager that will take care of audio routing,
         // audio modes, audio device enumeration etc.
-        audioManager = WebRTCAudioManager.create(this, new Runnable() {
+       audioManager = WebRTCAudioManager.create(this, new Runnable() {
                     // This method will be called each time the audio state (number and
                     // type of devices) has been changed.
                     @Override
@@ -442,15 +444,18 @@ public class VideoCallActivity extends AppCompatActivity implements PeerConnecti
 
     @Override
     public void onInterlocutorDisconnected() {
+
         (new Handler()).postDelayed(new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(getApplicationContext(), "Disconnected",
-                        Toast.LENGTH_LONG).show();
-                finish();
+                if(!tryReconnect) {
+                    Toast.makeText(getApplicationContext(), "Disconnected",
+                            Toast.LENGTH_LONG).show();
+                    finish();
+                }
             }
 
-        }, DELAY_DISCONNECT);
+        }, DEFAULT_DELAY);
     }
 
     @Override
@@ -604,6 +609,7 @@ public class VideoCallActivity extends AppCompatActivity implements PeerConnecti
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                tryReconnect = true;
                 Toast.makeText(getApplicationContext(), "Poor connection, trying to reconnect...",
                         Toast.LENGTH_LONG).show();
                 Intent returnIntent = new Intent();
