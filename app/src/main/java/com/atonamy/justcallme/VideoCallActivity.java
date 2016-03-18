@@ -36,7 +36,7 @@ import java.util.List;
  */
 public class VideoCallActivity extends AppCompatActivity implements PeerConnectionClient.PeerConnectionEvents, SignalingHandler.Events {
 
-    private static String WS_SERVER = "ws://104.199.139.87:8005";
+    private static String WS_SERVER = "wss://api.coinpip.com:8006";
     private final static int DEFAULT_DELAY = 3000;
 
     private static final int REMOTE_X = 0;
@@ -240,7 +240,7 @@ public class VideoCallActivity extends AppCompatActivity implements PeerConnecti
                 0,
                 0,
                 0,
-                "VP8",
+                "VP9",
                 true,
                 0,
                 "OPUS",
